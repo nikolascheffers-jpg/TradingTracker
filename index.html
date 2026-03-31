@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ArbTrack">
+<title>ArbTrack – Binance vs Bitvavo</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #07090f; --bg2: #0c111d; --bg3: #111827;
+  --border: #1f2d42; --accent: #38bdf8;
+  --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+  --text: #e2e8f0; --muted: #475569;
+  --bin: #f0b90b; --bit: #3b82f6;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif; }
+
+.hdr { position: sticky; top: 0; z-index: 50; background: var(–bg2); border-bottom: 1px solid var(–border); padding: calc(var(–safe-top) + 12px) 16px 10px; }
+.hdr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.logo { font-size: 17px; font-weight: 800; letter-spacing: -.4px; display: flex; align-items: center; gap: 7px; }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(–accent); box-shadow: 0 0 8px var(–accent); }
+.pulse.live { animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.btn-refresh { display: flex; align-items: center; gap: 5px; background: var(–bg3); border: 1px solid var(–border); color: var(–accent); border-radius: 8px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.btn-refresh:active { opacity: .7; }
+.btn-refresh.loading { color: var(–muted); pointer-events: none; }
+.spin { display: inline-block; }
+.loading .spin { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex-shrink: 0; background: var(–bg3); border: 1px solid var(–border); border-radius: 6px; padding: 3px 9px; font-size: 10px; color: var(–muted); white-space: nowrap; }
+.chip b { color: var(–text); font-weight: 600; }
+
+.prog { height: 2px; background: var(–border); }
+.prog-fill { height: 2px; background: var(–accent); width: 0; }
+
+.search-wrap { padding: 8px 16px; border-bottom: 1px solid var(–border); position: relative; }
+.search-icon { position: absolute; left: 26px; top: 50%; transform: translateY(-50%); color: var(–muted); font-size: 13px; pointer-events: none; }
+.search-input { width: 100%; background: var(–bg3); border: 1px solid var(–border); border-radius: 8px; padding: 8px 10px 8px 32px; font-size: 13px; color: var(–text); outline: none; -webkit-appearance: none; }
+.search-input::placeholder { color: var(–muted); }
+.search-input:focus { border-color: var(–accent); }
+
+.controls { display: flex; gap: 6px; padding: 9px 16px; border-bottom: 1px solid var(–border); flex-wrap: wrap; align-items: center; }
+.seg { display: flex; background: var(–bg3); border: 1px solid var(–border); border-radius: 7px; overflow: hidden; }
+.seg-btn { padding: 5px 13px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(–muted); background: transparent; border: none; white-space: nowrap; }
+.seg-btn.on { background: var(–accent); color: var(–bg); }
+.lbl { font-size: 10px; color: var(–muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-right: 2px; }
+.spacer { flex: 1; }
+
+/* Freshness filter */
+.filter-bar { display: flex; gap: 6px; padding: 7px 16px; border-bottom: 1px solid var(–border); align-items: center; overflow-x: auto; scrollbar-width: none; }
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; border: 1px solid var(–border); background: var(–bg3); color: var(–muted); cursor: pointer; white-space: nowrap; }
+.filter-chip.on { background: var(–accent); border-color: var(–accent); color: var(–bg); }
+.stale-warn { font-size: 10px; color: var(–yellow); margin-left: auto; flex-shrink: 0; }
+
+.tbl-hdr { display: grid; grid-template-columns: 42px 1fr 86px 86px 74px; padding: 7px 16px; font-size: 9px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(–muted); border-bottom: 1px solid var(–border); }
+.tbl-hdr div:nth-child(n+3) { text-align: right; }
+.ex-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+.row { display: grid; grid-template-columns: 42px 1fr 86px 86px 74px; padding: 10px 16px; border-bottom: 1px solid rgba(31,45,66,.5); align-items: center; cursor: pointer; }
+.row:active { background: var(–bg3); }
+.row.stale { opacity: 0.55; }
+.icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+.sym { font-size: 13px; font-weight: 800; }
+.sym-alias { font-size: 9px; color: var(–muted); margin-top: 1px; }
+.badge { display: inline-block; font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; margin-top: 3px; }
+.age-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
+
+.price { text-align: right; font-family: ‘SF Mono’,‘Menlo’,monospace; }
+.price-main { font-size: 11px; font-weight: 700; }
+.price-sub { font-size: 9px; color: var(–muted); margin-top: 2px; }
+.price-age { font-size: 8px; margin-top: 1px; }
+
+.diff { text-align: right; }
+.diff-pct { display: inline-block; font-family: ‘SF Mono’,‘Menlo’,monospace; font-size: 11px; font-weight: 700; padding: 3px 5px; border-radius: 5px; }
+.diff-abs { font-family: ‘SF Mono’,‘Menlo’,monospace; font-size: 9px; color: var(–muted); margin-top: 2px; }
+
+.state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 14px; text-align: center; }
+.loader { width: 36px; height: 36px; border: 2px solid var(–border); border-top-color: var(–accent); border-radius: 50%; animation: spin .8s linear infinite; }
+.state-txt { font-size: 13px; }
+.state-sub { font-size: 11px; color: var(–muted); max-width: 260px; line-height: 1.7; }
+.error-box { margin: 12px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(–red); line-height: 1.7; }
+.retry { margin-top: 8px; background: transparent; border: 1px solid var(–red); color: var(–red); border-radius: 6px; padding: 5px 14px; font-size: 11px; cursor: pointer; display: inline-block; }
+
+/* MODAL */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 100; align-items: flex-end; }
+.overlay.open { display: flex; }
+.sheet { background: var(–bg2); border: 1px solid var(–border); border-radius: 20px 20px 0 0; width: 100%; padding: 18px 18px calc(20px + var(–safe-bot)); animation: up .25s ease; max-height: 92vh; overflow-y: auto; }
+@keyframes up { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.handle { width: 34px; height: 4px; background: var(–border); border-radius: 2px; margin: 0 auto 18px; }
+.sheet-title { font-size: 21px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.sheet-sub { font-size: 11px; color: var(–muted); font-family: ‘SF Mono’,monospace; margin-bottom: 18px; }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+.card { background: var(–bg3); border: 1px solid var(–border); border-radius: 11px; padding: 13px; }
+.card-lbl { font-size: 10px; color: var(–muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+.card-eur { font-family: ‘SF Mono’,monospace; font-size: 15px; font-weight: 700; }
+.card-usd { font-family: ‘SF Mono’,monospace; font-size: 10px; color: var(–muted); margin-top: 2px; }
+.card-age { font-size: 10px; margin-top: 6px; }
+.arb-box { background: var(–bg3); border: 1px solid var(–border); border-radius: 11px; padding: 13px; margin-bottom: 12px; }
+.arb-title { font-size: 10px; color: var(–muted); font-weight: 700; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 11px; }
+.arb-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.arb-lbl { font-size: 11px; color: var(–muted); }
+.arb-val { font-family: ‘SF Mono’,monospace; font-size: 12px; font-weight: 700; }
+.note-box { font-size: 10px; color: var(–muted); background: var(–bg3); border: 1px solid var(–border); border-radius: 8px; padding: 9px 11px; margin-bottom: 13px; line-height: 1.7; }
+.btn-close { width: 100%; background: var(–bg3); border: 1px solid var(–border); color: var(–text); border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.footer { padding: 10px; text-align: center; font-size: 10px; color: var(–muted); border-top: 1px solid var(–border); padding-bottom: calc(10px + var(–safe-bot)); }
+</style>
+
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="logo">
+      <div class="pulse" id="pulse"></div>
+      ARBTRACK
+      <span style="font-size:11px;color:var(--muted);font-weight:400">Binance vs Bitvavo</span>
+    </div>
+    <button class="btn-refresh" id="refreshBtn" onclick="loadAll()">
+      <span class="spin">↻</span> REFRESH
+    </button>
+  </div>
+  <div class="chips" id="chips"><div class="chip">Loading…</div></div>
+</div>
+
+<div class="prog"><div class="prog-fill" id="prog"></div></div>
+
+<div class="search-wrap">
+  <span class="search-icon">🔍</span>
+  <input type="search" class="search-input" id="searchInput"
+    placeholder="Search token (e.g. BTC, WLFI, POL…)"
+    oninput="render()" autocorrect="off" autocapitalize="off" spellcheck="false">
+</div>
+
+<div class="controls">
+  <span class="lbl">Display</span>
+  <div class="seg">
+    <button class="seg-btn on" id="b-eur"  onclick="setMode('EUR')">€ EUR</button>
+    <button class="seg-btn"    id="b-usd"  onclick="setMode('USD')">$ USD</button>
+    <button class="seg-btn"    id="b-both" onclick="setMode('BOTH')">Both</button>
+  </div>
+  <div class="spacer"></div>
+  <span class="lbl">Sort</span>
+  <div class="seg">
+    <button class="seg-btn on" id="s-arb" onclick="setSort('arb')">% Diff</button>
+    <button class="seg-btn"    id="s-az"  onclick="setSort('az')">A–Z</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <span class="lbl" style="flex-shrink:0">Freshness</span>
+  <button class="filter-chip on" id="f-all"   onclick="setFresh('all')">All</button>
+  <button class="filter-chip"    id="f-1h"    onclick="setFresh('1h')">≤ 1 hr</button>
+  <button class="filter-chip"    id="f-10m"   onclick="setFresh('10m')">≤ 10 min</button>
+  <button class="filter-chip"    id="f-1m"    onclick="setFresh('1m')">≤ 1 min</button>
+  <span class="stale-warn" id="staleWarn"></span>
+</div>
+
+<div class="tbl-hdr">
+  <div></div><div>TOKEN</div>
+  <div><span class="ex-dot" style="background:var(--bin)"></span>BINANCE</div>
+  <div><span class="ex-dot" style="background:var(--bit)"></span>BITVAVO</div>
+  <div>DIFF</div>
+</div>
+
+<div id="list"></div>
+<div class="footer" id="footer"></div>
+
+<!-- DETAIL SHEET -->
+
+<div class="overlay" id="overlay" onclick="closeSheet(event)">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="sheet-title" id="s-title"></div>
+    <div class="sheet-sub"   id="s-sub"></div>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-lbl"><span class="ex-dot" style="background:var(--bin)"></span>BINANCE</div>
+        <div class="card-eur" id="s-bin-eur"></div>
+        <div class="card-usd" id="s-bin-usd"></div>
+        <div class="card-age" id="s-bin-age"></div>
+      </div>
+      <div class="card">
+        <div class="card-lbl"><span class="ex-dot" style="background:var(--bit)"></span>BITVAVO</div>
+        <div class="card-eur" id="s-bit-eur"></div>
+        <div class="card-usd" id="s-bit-usd"></div>
+        <div class="card-age" id="s-bit-age"></div>
+      </div>
+    </div>
+    <div class="arb-box">
+      <div class="arb-title">⚡ Arbitrage Details</div>
+      <div class="arb-row"><span class="arb-lbl">Difference (EUR)</span><span class="arb-val" id="s-deur"></span></div>
+      <div class="arb-row"><span class="arb-lbl">Difference (USD)</span><span class="arb-val" id="s-dusd"></span></div>
+      <div class="arb-row"><span class="arb-lbl">Percentage</span>      <span class="arb-val" id="s-dpct"></span></div>
+      <div class="arb-row"><span class="arb-lbl">Cheaper on</span>      <span class="arb-val" id="s-cheap"></span></div>
+    </div>
+    <div class="note-box" id="s-note"></div>
+    <button class="btn-close" onclick="document.getElementById('overlay').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<script>
+// ─── SYMBOL ALIAS MAP ──────────────────────────────────────────────────
+// Some tokens have DIFFERENT ticker symbols on Binance vs Bitvavo.
+// Key   = symbol as used on BITVAVO
+// Value = symbol as used on BINANCE (for USDT pair lookup)
+// This ensures tokens still match even when exchanges use different tickers.
+const ALIASES = {
+  'POL':      'MATIC',   // Polygon rebranded MATIC → POL; Binance still trades MATICUSDT
+  '1INCH':    '1INCH',   // same but worth noting
+  'MIOTA':    'IOTA',    // Bitvavo may use MIOTA, Binance uses IOTA
+};
+// Reverse map: binance sym → bitvavo display sym (for cross-referencing)
+const ALIASES_REV = Object.fromEntries(Object.entries(ALIASES).map(([b,k])=>[k,b]));
+
+// ─── METADATA ──────────────────────────────────────────────────────────
+const META = {
+  BTC:{i:'₿',c:'#f7931a'}, ETH:{i:'Ξ',c:'#627eea'}, SOL:{i:'◎',c:'#9945ff'},
+  XRP:{i:'✕',c:'#00aae4'}, BNB:{i:'B',c:'#f0b90b'}, ADA:{i:'₳',c:'#3cc8c8'},
+  DOGE:{i:'Ð',c:'#c3a634'}, AVAX:{i:'▲',c:'#e84142'}, LINK:{i:'⬡',c:'#2a5ada'},
+  DOT:{i:'●',c:'#e6007a'}, SHIB:{i:'🐕',c:'#e01a1a'},
+  POL:{i:'⬟',c:'#8247e5'}, MATIC:{i:'⬟',c:'#8247e5'},
+  UNI:{i:'🦄',c:'#ff007a'}, LTC:{i:'Ł',c:'#bfbbbb'},
+  NEAR:{i:'N',c:'#00c08b'}, ATOM:{i:'⚛',c:'#6f7390'}, TRX:{i:'◈',c:'#ef0027'},
+  TON:{i:'💎',c:'#0098ea'}, OP:{i:'🔴',c:'#ff0420'}, ARB:{i:'◆',c:'#12aaff'},
+  PEPE:{i:'🐸',c:'#47a024'}, WIF:{i:'🐶',c:'#9945ff'}, BONK:{i:'🔥',c:'#f97316'},
+  JUP:{i:'J',c:'#00d4ff'}, SUI:{i:'S',c:'#6fbcf0'}, SEI:{i:'S',c:'#9d4fff'},
+  INJ:{i:'I',c:'#00b4d8'}, GRT:{i:'G',c:'#6f4cff'}, SAND:{i:'⬛',c:'#04adef'},
+  MANA:{i:'◭',c:'#ff2d55'}, AAVE:{i:'Λ',c:'#b6509e'}, MKR:{i:'M',c:'#1aab9b'},
+  COMP:{i:'C',c:'#00d395'}, FIL:{i:'◈',c:'#0090ff'}, ICP:{i:'∞',c:'#3b00b9'},
+  HBAR:{i:'H',c:'#444'}, ALGO:{i:'A',c:'#00b4d8'}, XLM:{i:'✦',c:'#7bc4e2'},
+  VET:{i:'V',c:'#15bdff'}, XTZ:{i:'ꜩ',c:'#a6e000'}, FLOW:{i:'F',c:'#00ef8b'},
+  AXS:{i:'A',c:'#0055d5'}, ENS:{i:'E',c:'#5284ff'}, LDO:{i:'L',c:'#f68b24'},
+  RPL:{i:'R',c:'#ff6600'}, FET:{i:'F',c:'#4d4dff'}, RNDR:{i:'R',c:'#ff3d00'},
+  IMX:{i:'I',c:'#17b3e0'}, APE:{i:'🦍',c:'#0033ad'}, GMT:{i:'G',c:'#ffd700'},
+  DYDX:{i:'D',c:'#6966ff'}, SNX:{i:'S',c:'#00d1ff'}, CRV:{i:'C',c:'#888'},
+  ZEC:{i:'Z',c:'#f4b728'}, BCH:{i:'Ƀ',c:'#8dc351'}, ETC:{i:'Ξ',c:'#328332'},
+  WLFI:{i:'W',c:'#7c3aed'}, TRUMP:{i:'T',c:'#c8102e'}, WLD:{i:'W',c:'#555'},
+  PYTH:{i:'P',c:'#6e3cdd'}, TIA:{i:'T',c:'#7c3aed'},
+  ORDI:{i:'O',c:'#f7931a'}, GLM:{i:'G',c:'#181ea9'}, ZIL:{i:'Z',c:'#29ccc4'},
+  ONE:{i:'1',c:'#00d1ff'}, CELO:{i:'C',c:'#35d07f'}, ROSE:{i:'R',c:'#0092f6'},
+  KAVA:{i:'K',c:'#ff564a'}, CHZ:{i:'C',c:'#cd0124'}, ENJ:{i:'E',c:'#7866d5'},
+  GALA:{i:'G',c:'#888'}, CKB:{i:'C',c:'#3cc68a'}, AR:{i:'A',c:'#222'},
+  API3:{i:'A',c:'#2c52d8'}, BAND:{i:'B',c:'#4e2c93'}, SUSHI:{i:'S',c:'#fa52a0'},
+  BAT:{i:'B',c:'#ff5000'}, ZRX:{i:'Z',c:'#555'}, ANKR:{i:'A',c:'#2e6af0'},
+  AUDIO:{i:'A',c:'#7d40ff'}, EOS:{i:'E',c:'#333'}, OCEAN:{i:'O',c:'#ff4092'},
+  BLUR:{i:'B',c:'#ff6600'}, XMR:{i:'M',c:'#ff6600'}, IOTA:{i:'I',c:'#888'},
+  '1INCH':{i:'1',c:'#d82122'}, ACH:{i:'A',c:'#4b5ef0'},
+  MELANIA:{i:'M',c:'#d4af37'}, STRK:{i:'S',c:'#555'},
+};
+function getMeta(s){ return META[s] || { i: s.slice(0,2), c:'#64748b' }; }
+
+// ─── STATE ─────────────────────────────────────────────────────────────
+let rows=[], eurUsd=1.08, mode='EUR', sort='arb', fresh='all', timerID=null;
+
+// ─── FRESHNESS THRESHOLDS (ms) ─────────────────────────────────────────
+const FRESH_MS = { all: Infinity, '1h': 3600000, '10m': 600000, '1m': 60000 };
+
+// ─── FORMAT HELPERS ────────────────────────────────────────────────────
+function fe(v){
+  if(v==null||isNaN(v)) return '—';
+  if(v>=10000)  return '€'+Math.round(v).toLocaleString('en-US');
+  if(v>=100)    return '€'+v.toFixed(2);
+  if(v>=1)      return '€'+v.toFixed(4);
+  if(v>=0.01)   return '€'+v.toFixed(6);
+  if(v>=0.0001) return '€'+v.toFixed(8);
+  return '€'+v.toExponential(3);
+}
+function fu(v){
+  if(v==null||isNaN(v)) return '—';
+  if(v>=10000)  return '$'+Math.round(v).toLocaleString('en-US');
+  if(v>=100)    return '$'+v.toFixed(2);
+  if(v>=1)      return '$'+v.toFixed(4);
+  if(v>=0.01)   return '$'+v.toFixed(6);
+  if(v>=0.0001) return '$'+v.toFixed(8);
+  return '$'+v.toExponential(3);
+}
+function sg(v){ return v>=0?'+':'–'; }
+
+// Format age in ms → human readable
+function fmtAge(ms){
+  if(ms==null) return '?';
+  const s=Math.round(ms/1000);
+  if(s<60)  return s+'s ago';
+  const m=Math.round(s/60);
+  if(m<60)  return m+'m ago';
+  const h=Math.round(m/60);
+  return h+'h ago';
+}
+
+// Colour for age indicator dot
+function ageColor(ms){
+  if(ms==null||ms>3600000) return 'var(--red)';
+  if(ms>600000) return 'var(--yellow)';
+  return 'var(--green)';
+}
+
+// ─── FETCH ─────────────────────────────────────────────────────────────
+function xfetch(url){
+  return new Promise((ok,fail)=>{
+    const ctrl=new AbortController();
+    const t=setTimeout(()=>{ ctrl.abort(); fail(new Error('Request timed out')); },15000);
+    fetch(url,{signal:ctrl.signal})
+      .then(r=>{ clearTimeout(t); ok(r); })
+      .catch(e=>{ clearTimeout(t); fail(e); });
+  });
+}
+
+// ─── MAIN LOAD ─────────────────────────────────────────────────────────
+async function loadAll(){
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  btn.innerHTML='<span class="spin">↻</span> LOADING…';
+  document.getElementById('pulse').classList.remove('live');
+  setList(`<div class="state">
+    <div class="loader"></div>
+    <div class="state-txt">Fetching live prices…</div>
+    <div class="state-sub">Using 24h ticker endpoints for price freshness data.<br>Takes a few seconds.</div>
+  </div>`);
+
+  try {
+    // ── Fetch 24hr tickers from both exchanges ──────────────────────
+    // WHY 24hr instead of /price?
+    //   /ticker/price has NO timestamp — we can't know if the price is fresh.
+    //   /ticker/24hr includes closeTime (Binance) and timestamp (Bitvavo),
+    //   which tells us when the last trade happened.
+    const [bRes, vRes] = await Promise.all([
+      xfetch('https://api.binance.com/api/v3/ticker/24hr'),   // includes closeTime
+      xfetch('https://api.bitvavo.com/v2/ticker/24h'),         // includes timestamp
+    ]);
+    if(!bRes.ok) throw new Error('Binance API error: HTTP '+bRes.status);
+    if(!vRes.ok) throw new Error('Bitvavo API error: HTTP '+vRes.status);
+
+    const [bAll, vAll] = await Promise.all([bRes.json(), vRes.json()]);
+    const now = Date.now();
+
+    // ── EUR/USD from Binance EURUSDT ────────────────────────────────
+    const eurTick = bAll.find(t=>t.symbol==='EURUSDT');
+    if(eurTick) eurUsd = parseFloat(eurTick.lastPrice);
+
+    // ── Index Binance USDT pairs ────────────────────────────────────
+    // We use USDT pairs (not EUR pairs) because:
+    //   - USDT pairs have the highest liquidity on Binance
+    //   - EUR pairs on Binance have very low volume → stale/unreliable prices
+    // Fields used: lastPrice (last traded price), closeTime (timestamp of last trade)
+    const binMap = {};  // sym → { price (USD), ageMs }
+    bAll.forEach(t => {
+      if(t.symbol.endsWith('USDT')){
+        const sym = t.symbol.slice(0,-4);
+        const price = parseFloat(t.lastPrice);
+        const ageMs = t.closeTime ? now - t.closeTime : null;
+        if(price>0) binMap[sym] = { price, ageMs };
+      }
+    });
+
+    // ── Index Bitvavo EUR pairs ─────────────────────────────────────
+    // Bitvavo's 24h ticker uses field 'last' for the last trade price.
+    // 'timestamp' = ms timestamp of last trade.
+    const bitMap = {};  // sym → { price (EUR), ageMs }
+    vAll.forEach(t => {
+      if(t.market && t.market.endsWith('-EUR')){
+        const sym = t.market.slice(0,-4);
+        const price = parseFloat(t.last);
+        // Bitvavo timestamp is ms unix
+        const ageMs = t.timestamp ? now - t.timestamp : null;
+        if(price>0) bitMap[sym] = { price, ageMs };
+      }
+    });
+
+    // ── Build rows ──────────────────────────────────────────────────
+    // Matching logic:
+    //   1. Iterate all Bitvavo symbols (e.g. "POL")
+    //   2. Check ALIASES to get the Binance equivalent (e.g. "MATIC")
+    //   3. Look up Binance price by the (possibly aliased) symbol
+    // This correctly handles tokens with different tickers on each exchange.
+    rows = [];
+    for(const bitSym of Object.keys(bitMap)){
+      const binSym = ALIASES[bitSym] || bitSym;   // translate symbol if needed
+      const binEntry = binMap[binSym];
+      const bitEntry = bitMap[bitSym];
+      if(!binEntry || !bitEntry) continue;
+
+      const binUsdt = binEntry.price;
+      const bitEur  = bitEntry.price;
+      const binAgeMs = binEntry.ageMs;
+      const bitAgeMs = bitEntry.ageMs;
+
+      // The "age" of this pair is the OLDEST of the two timestamps
+      // (a pair is only as fresh as its staler half)
+      const pairAgeMs = (binAgeMs!=null && bitAgeMs!=null)
+        ? Math.max(binAgeMs, bitAgeMs)
+        : (binAgeMs ?? bitAgeMs);
+
+      const binEur = binUsdt / eurUsd;  // Binance USD → EUR via live rate
+      const bitUsd = bitEur * eurUsd;   // Bitvavo EUR → USD
+
+      const dEur = bitEur - binEur;
+      const dUsd = bitUsd - binUsdt;
+      const dPct = (dEur / binEur) * 100;
+
+      const m = getMeta(bitSym);
+      const aliased = binSym !== bitSym;
+
+      rows.push({
+        s: bitSym,          // display symbol (Bitvavo name)
+        binSym,             // Binance symbol (may differ)
+        aliased,            // true if symbols differ between exchanges
+        i: m.i, c: m.c,
+        binEur, binUsdt,
+        bitEur, bitUsd,
+        dEur, dUsd, dPct,
+        binAgeMs, bitAgeMs, pairAgeMs,
+      });
+    }
+
+    if(!rows.length) throw new Error('No overlapping pairs found.');
+
+    // Count stale pairs (>1h old on either side)
+    const staleCnt = rows.filter(r=>r.pairAgeMs!=null && r.pairAgeMs>3600000).length;
+    document.getElementById('staleWarn').textContent =
+      staleCnt ? `⚠ ${staleCnt} pairs with stale price (>1h)` : '';
+
+    updateChips();
+    render();
+    startTimer();
+    document.getElementById('footer').textContent =
+      `Updated: ${new Date().toLocaleTimeString('en-GB')} · ${rows.length} tokens · Tap for details`;
+    document.getElementById('pulse').classList.add('live');
+
+  } catch(err){
+    setList(`<div class="error-box">
+      ⚠️ <b>Error:</b> ${err.message}<br><br>
+      Open this file in <b>Safari</b> on your iPhone — not inside the Claude app or another in-app browser.<br><br>
+      <button class="retry" onclick="loadAll()">↺ Try again</button>
+    </div>`);
+  } finally {
+    btn.classList.remove('loading');
+    btn.innerHTML='<span class="spin">↻</span> REFRESH';
+  }
+}
+
+// ─── TIMER ─────────────────────────────────────────────────────────────
+function startTimer(){
+  if(timerID) clearTimeout(timerID);
+  const f=document.getElementById('prog');
+  f.style.transition='none'; f.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    f.style.transition='width 30s linear'; f.style.width='0%';
+  }));
+  timerID=setTimeout(loadAll,30000);
+}
+
+// ─── CHIPS ─────────────────────────────────────────────────────────────
+function updateChips(){
+  const fresh1m = rows.filter(r=>r.pairAgeMs!=null&&r.pairAgeMs<=60000).length;
+  const diffs   = rows.map(r=>Math.abs(r.dPct));
+  const maxA    = Math.max(...diffs);
+  document.getElementById('chips').innerHTML=[
+    `<div class="chip">EUR/USD: <b>${eurUsd.toFixed(4)}</b></div>`,
+    `<div class="chip">Tokens: <b>${rows.length}</b></div>`,
+    `<div class="chip">Max diff: <b>${maxA.toFixed(2)}%</b></div>`,
+    `<div class="chip">≤1min fresh: <b>${fresh1m}</b></div>`,
+  ].join('');
+}
+
+// ─── CONTROLS ──────────────────────────────────────────────────────────
+function setMode(m){
+  mode=m;
+  ['EUR','USD','BOTH'].forEach(x=>document.getElementById('b-'+x.toLowerCase()).classList.toggle('on',x===m));
+  render();
+}
+function setSort(s){
+  sort=s;
+  document.getElementById('s-arb').classList.toggle('on',s==='arb');
+  document.getElementById('s-az').classList.toggle('on',s==='az');
+  render();
+}
+function setFresh(f){
+  fresh=f;
+  ['all','1h','10m','1m'].forEach(x=>document.getElementById('f-'+x).classList.toggle('on',x===f));
+  render();
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────
+function render(){
+  if(!rows.length) return;
+
+  const q=(document.getElementById('searchInput').value||'').trim().toUpperCase();
+  const maxAge=FRESH_MS[fresh];
+
+  let data=rows.filter(r=>{
+    if(q && !r.s.includes(q) && !r.binSym.includes(q)) return false;
+    if(fresh!=='all' && r.pairAgeMs!=null && r.pairAgeMs>maxAge) return false;
+    return true;
+  });
+
+  const sorted=[...data].sort((a,b)=>
+    sort==='az' ? a.s.localeCompare(b.s) : Math.abs(b.dPct)-Math.abs(a.dPct));
+
+  if(!sorted.length){
+    setList(`<div class="state"><div class="state-txt">No results${q?' for "'+q+'"':''}</div><div class="state-sub">Try relaxing the freshness filter.</div></div>`);
+    return;
+  }
+
+  setList(sorted.map(r=>{
+    const ap=Math.abs(r.dPct);
+    const col=ap<0.1?'var(--yellow)':r.dPct>0?'var(--green)':'var(--red)';
+    const bg =ap<0.1?'rgba(234,179,8,.12)':r.dPct>0?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)';
+    const pLabel=(r.dPct>=0?'+':'')+r.dPct.toFixed(2)+'%';
+    const cheaper=r.dEur>0?'Binance':'Bitvavo';
+    const cbg=r.dEur>0?'rgba(240,185,11,.15)':'rgba(59,130,246,.15)';
+    const ccol=r.dEur>0?'var(--bin)':'var(--bit)';
+    const isStale=r.pairAgeMs!=null&&r.pairAgeMs>3600000;
+    const ac=ageColor(r.pairAgeMs);
+
+    let bP,tP,dA;
+    if(mode==='EUR'){
+      bP=`<div class="price-main">${fe(r.binEur)}</div><div class="price-age" style="color:${ageColor(r.binAgeMs)}">⏱ ${fmtAge(r.binAgeMs)}</div>`;
+      tP=`<div class="price-main">${fe(r.bitEur)}</div><div class="price-age" style="color:${ageColor(r.bitAgeMs)}">⏱ ${fmtAge(r.bitAgeMs)}</div>`;
+      dA=sg(r.dEur)+fe(Math.abs(r.dEur));
+    } else if(mode==='USD'){
+      bP=`<div class="price-main">${fu(r.binUsdt)}</div><div class="price-age" style="color:${ageColor(r.binAgeMs)}">⏱ ${fmtAge(r.binAgeMs)}</div>`;
+      tP=`<div class="price-main">${fu(r.bitUsd)}</div><div class="price-age" style="color:${ageColor(r.bitAgeMs)}">⏱ ${fmtAge(r.bitAgeMs)}</div>`;
+      dA=sg(r.dUsd)+fu(Math.abs(r.dUsd));
+    } else {
+      bP=`<div class="price-main">${fe(r.binEur)}</div><div class="price-sub">${fu(r.binUsdt)}</div>`;
+      tP=`<div class="price-main">${fe(r.bitEur)}</div><div class="price-sub">${fu(r.bitUsd)}</div>`;
+      dA=sg(r.dEur)+fe(Math.abs(r.dEur));
+    }
+
+    return `<div class="row${isStale?' stale':''}" onclick="openSheet('${r.s}')">
+      <div><div class="icon" style="background:${r.c}22;color:${r.c}">${r.i}</div></div>
+      <div>
+        <div class="sym">${r.s}<span class="age-dot" style="background:${ac}"></span></div>
+        ${r.aliased?`<div class="sym-alias">Binance: ${r.binSym}</div>`:''}
+        <div class="badge" style="background:${cbg};color:${ccol}">↓ ${cheaper}</div>
+      </div>
+      <div class="price">${bP}</div>
+      <div class="price">${tP}</div>
+      <div class="diff">
+        <div class="diff-pct" style="background:${bg};color:${col}">${pLabel}</div>
+        <div class="diff-abs">${dA}</div>
+      </div>
+    </div>`;
+  }).join(''));
+}
+
+function setList(h){ document.getElementById('list').innerHTML=h; }
+
+// ─── DETAIL SHEET ──────────────────────────────────────────────────────
+function openSheet(sym){
+  const r=rows.find(x=>x.s===sym); if(!r) return;
+
+  document.getElementById('s-title').innerHTML=
+    `<div class="icon" style="background:${r.c}22;color:${r.c};width:32px;height:32px;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">${r.i}</div>${r.s}`;
+
+  document.getElementById('s-sub').textContent=
+    `EUR/USD: ${eurUsd.toFixed(5)} · ${new Date().toLocaleTimeString('en-GB')}`;
+
+  document.getElementById('s-bin-eur').textContent=fe(r.binEur);
+  document.getElementById('s-bin-usd').textContent=fu(r.binUsdt)+' (native USDT)';
+  const binAgeEl=document.getElementById('s-bin-age');
+  binAgeEl.textContent='Last trade: '+fmtAge(r.binAgeMs);
+  binAgeEl.style.color=ageColor(r.binAgeMs);
+
+  document.getElementById('s-bit-eur').textContent=fe(r.bitEur)+' (native EUR)';
+  document.getElementById('s-bit-usd').textContent=fu(r.bitUsd);
+  const bitAgeEl=document.getElementById('s-bit-age');
+  bitAgeEl.textContent='Last trade: '+fmtAge(r.bitAgeMs);
+  bitAgeEl.style.color=ageColor(r.bitAgeMs);
+
+  const col=Math.abs(r.dPct)<0.1?'var(--yellow)':r.dPct>0?'var(--green)':'var(--red)';
+  const setV=(id,txt,c)=>{ const el=document.getElementById(id); el.textContent=txt; if(c)el.style.color=c; };
+  setV('s-deur',sg(r.dEur)+fe(Math.abs(r.dEur)),col);
+  setV('s-dusd',sg(r.dUsd)+fu(Math.abs(r.dUsd)),col);
+  setV('s-dpct',(r.dPct>=0?'+':'')+r.dPct.toFixed(4)+'%',col);
+  setV('s-cheap',r.dEur>0?'🟡 Binance (cheaper)':'🔵 Bitvavo (cheaper)',null);
+
+  document.getElementById('s-note').innerHTML=
+    `<b>How matching works:</b> Tokens are matched by <b>ticker symbol</b> (e.g. BTC), not by name. `+
+    (r.aliased
+      ? `⚠️ This token uses a <b>different symbol</b> on each exchange — <b>${r.s}</b> on Bitvavo, <b>${r.binSym}</b> on Binance. The alias map handles this correctly.`
+      : `Both exchanges use the same symbol <b>${r.s}</b>.`)+
+    `<br><br><b>Prices:</b> Binance <i>${r.binSym}USDT</i> ÷ EURUSDT rate = ${fe(r.binEur)}. Bitvavo <i>${r.s}-EUR</i> native = ${fe(r.bitEur)}.`+
+    `<br><br><b>Freshness:</b> Binance last trade ${fmtAge(r.binAgeMs)}, Bitvavo last trade ${fmtAge(r.bitAgeMs)}. `+
+    `Large differences on illiquid tokens are often caused by stale prices — always check the timestamps.`;
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeSheet(e){
+  if(e.target===document.getElementById('overlay'))
+    document.getElementById('overlay').classList.remove('open');
+}
+
+loadAll();
+</script>
+
+</body>
+</html>
